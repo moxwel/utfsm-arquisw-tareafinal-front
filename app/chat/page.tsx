@@ -1,92 +1,120 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { channels, bots, currentUser, seedMessages } from '../data';
+import type { Channel, Bot, Message } from '../lib/types';
+import Sidebar from '../components/ui/Sidebar';
+import DynamicList from '../components/ui/DynamicList';
 import ChatWindow from '../components/ui/ChatWindow';
-import { channels, threadsByChannel, bots, messages as messagesData, currentUser } from '../data';
-import type { Message } from '../lib/types';
-
-// Componente simple para la barra lateral
-const Sidebar = ({ onSelect }: { onSelect: (id: string) => void }) => (
-  <div className="w-64 min-w-64 h-full bg-gray-100 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
-    <h1 className="text-xl font-bold mb-4">UTFSM Chat</h1>
-    
-    <h2 className="font-semibold mt-4 mb-2 text-gray-500 dark:text-gray-400 uppercase text-sm">Canales</h2>
-    {channels.map(channel => (
-      <div key={channel.id}>
-        <p className="font-medium text-gray-800 dark:text-gray-200">{channel.name}</p>
-        <div className="pl-4">
-          {threadsByChannel[channel.id]?.map(thread => (
-            <button key={thread.id} onClick={() => onSelect(thread.id)} className="block text-left w-full text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white py-1 truncate">
-              # {thread.name}
-            </button>
-          ))}
-        </div>
-      </div>
-    ))}
-
-    <h2 className="font-semibold mt-6 mb-2 text-gray-500 dark:text-gray-400 uppercase text-sm">Bots</h2>
-    {bots.map(bot => (
-       <button key={bot.id} onClick={() => onSelect(bot.id)} className="flex items-center gap-2 w-full text-left text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white py-1 truncate">
-          <img src={bot.avatarUrl} alt={bot.name} className="w-5 h-5 rounded-full" />
-          {bot.name}
-        </button>
-    ))}
-  </div>
-);
 
 export default function ChatPage() {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'channels' | 'bots' | null>('channels');
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Record<string, Message[]>>(seedMessages);
 
-  const activeChat = useMemo(() => {
-    if (!activeId) return null;
+  const selectedChannel = channels.find(c => c.id.toString() === selectedChannelId);
 
-    const allThreads = Object.values(threadsByChannel).flat();
-    const thread = allThreads.find(t => t.id === activeId);
-    if (thread) {
-      return { type: 'thread', ...thread, avatar: undefined };
+  const handleSend = (text: string) => {
+    const activeChatId = selectedThreadId || selectedBotId;
+    if (!activeChatId) return;
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text,
+      isSender: true,
+      author: currentUser.name,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages(prev => ({
+      ...prev,
+      [activeChatId]: [...(prev[activeChatId] || []), newMessage],
+    }));
+  };
+
+  const getListProps = () => {
+    if (activeView === 'bots') {
+      return {
+        title: 'Bots',
+        items: bots,
+        onItemClick: (id: string | number) => {
+          setSelectedBotId(id as string);
+          setSelectedThreadId(null);
+        },
+        selectedId: selectedBotId,
+        titleClassName: 'bg-purple-500 text-white',
+      };
     }
 
-    const bot = bots.find(b => b.id === activeId);
-    if (bot) {
-      return { type: 'bot', ...bot };
+    if (selectedChannel) {
+      return {
+        title: selectedChannel.name,
+        items: selectedChannel.threads,
+        onItemClick: (id: string | number) => {
+          setSelectedThreadId(id as string);
+          setSelectedBotId(null);
+        },
+        selectedId: selectedThreadId,
+        onBack: () => setSelectedChannelId(null),
+        titleClassName: 'bg-blue-500 text-white',
+      };
     }
-    
-    return null;
-  }, [activeId]);
 
-  const activeMessages = useMemo(() => {
-    if (!activeId) return [];
-    const rawMessages = messagesData[activeId as keyof typeof messagesData] || [];
-    return rawMessages.map((msg, index) => ({
-      id: `${activeId}-${index}`,
-      ...msg,
-      isSender: msg.author === 'Tú',
-      avatarUrl: msg.author === 'Tú' ? currentUser.avatarUrl : msg.authorAvatarUrl,
-    })) as (Message & { avatarUrl?: string })[];
-  }, [activeId]);
+    return {
+      title: 'Canales',
+      items: channels,
+      onItemClick: (id: string | number) => {
+        setSelectedChannelId(id.toString());
+      },
+      selectedId: selectedChannelId,
+      titleClassName: 'bg-green-500 text-white',
+    };
+  };
+
+  const listProps = getListProps();
+  const activeChatId = selectedThreadId || selectedBotId;
+  const chatMessages = (activeChatId ? messages[activeChatId] : []) || [];
+
+  const getChatName = () => {
+    if (selectedThreadId) {
+      for (const channel of channels) {
+        const thread = channel.threads.find(t => t.id === selectedThreadId);
+        if (thread) return `# ${thread.name}`;
+      }
+    }
+    if (selectedBotId) {
+      const bot = bots.find(b => b.id === selectedBotId);
+      if (bot) return bot.name;
+    }
+    return "Chat"; // Un nombre por defecto
+  };
 
   return (
-    <div className="flex h-screen bg-white dark:bg-black text-gray-900 dark:text-gray-100">
-      <Sidebar onSelect={setActiveId} />
-      <main className="flex-1 flex min-w-0">
-        {activeChat ? (
+    <div className="flex h-screen overflow-hidden bg-white dark:bg-black">
+      <Sidebar onSelectView={setActiveView} activeView={activeView} />
+      <div className="w-1/3 min-w-0 min-h-0 h-full overflow-hidden">
+        <DynamicList {...listProps} />
+      </div>
+      {activeChatId ? (
+        <div className="flex-1 min-w-0 flex">
           <ChatWindow
-            key={activeId}
-            chatName={activeChat.name}
-            messages={activeMessages}
-            onClose={() => setActiveId(null)}
-            userAvatar={currentUser.avatarUrl}
-            contactAvatar={activeChat.avatar}
-            onSend={(text) => {
-              console.log(`Sending to ${activeId}: ${text}`);
+            key={activeChatId}
+            chatName={getChatName()}
+            messages={chatMessages}
+            onClose={() => {
+              setSelectedThreadId(null);
+              setSelectedBotId(null);
             }}
+            onSend={handleSend}
           />
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            Selecciona un canal o bot para empezar a chatear
-          </div>
-        )}
-      </main>
+        </div>
+      ) : (
+        <div className="flex-1 min-w-0 flex items-center justify-center text-gray-500">
+          Selecciona un hilo o un bot para empezar a chatear
+        </div>
+      )}
     </div>
   );
 }
