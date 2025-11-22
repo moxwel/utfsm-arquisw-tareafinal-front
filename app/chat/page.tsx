@@ -1,30 +1,57 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { channels, bots, currentUser, seedMessages } from '../data';
-import type { Channel, Bot, Message } from '../lib/types';
+import { useRouter } from 'next/navigation';
+import { getCurrentUser } from '../lib/api'; 
+import { channels, bots, seedMessages } from '../data';
+import type { User, Message } from '../lib/types';
 import Sidebar from '../components/ui/Sidebar';
 import DynamicList from '../components/ui/DynamicList';
 import ChatWindow from '../components/ui/ChatWindow';
 
 export default function ChatPage() {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+// Estado logico del chat
   const [activeView, setActiveView] = useState<'channels' | 'bots' | null>('channels');
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>(seedMessages);
 
+//efectos 
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
+        } else {
+          router.push('/login'); 
+        }
+      } catch (error) {
+        console.error("Error al obtener el usuario, redirigiendo a login", error);
+        router.push('/login');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUser();
+  }, [router]);
+
   const selectedChannel = channels.find(c => c.id.toString() === selectedChannelId);
 
   const handleSend = (text: string) => {
     const activeChatId = selectedThreadId || selectedBotId;
-    if (!activeChatId) return;
+    if (!activeChatId || !currentUser) return; //me aseguro de que haya un chat activo y un usuario
 
     const newMessage: Message = {
       id: Date.now().toString(),
       text,
       isSender: true,
-      author: currentUser.name,
+      author: currentUser.full_name,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
@@ -88,12 +115,18 @@ export default function ChatPage() {
       const bot = bots.find(b => b.id === selectedBotId);
       if (bot) return bot.name;
     }
-    return "Chat"; // Un nombre por defecto
+    return "Chat";
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Cargando...</div>;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-white dark:bg-black">
-      <Sidebar onSelectView={setActiveView} activeView={activeView} />
+      
+      <Sidebar currentUser={currentUser} />
+      
       <div className="w-1/3 min-w-0 min-h-0 h-full overflow-hidden">
         <DynamicList {...listProps} />
       </div>

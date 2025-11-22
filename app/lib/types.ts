@@ -1,19 +1,20 @@
 // app/lib/types.ts
 
-export interface User {
+export type User = {
   id: string;
-  name: string;
-  avatarUrl: string;
-}
+  email: string;
+  username: string;
+  full_name: string;
+  is_active: boolean;
+};
 
-export interface Message {
+export type Message = {
   id: string;
-  author: string;
   text: string;
-  timestamp: string;
   isSender: boolean;
-  authorAvatarUrl?: string;
-}
+  author: string;
+  timestamp: string;
+};
 
 export interface Thread {
   id: string;
@@ -27,8 +28,29 @@ export interface Channel {
   threads: { id: string; name: string }[];
 }
 
-export interface Bot {
+export type Bot = {
   id: string;
   name: string;
-  avatarUrl: string;
-}
+  avatar: string;
+};
+
+export type RegisterUserData = {
+  email: string;
+  username: string;
+  password: string;
+  full_name: string;
+};
+
+export type LoginUserData = {
+  username_or_email: string;
+  password: string;
+};
+
+export type LoginResponse = {
+  access_token: string;
+  token_type: string;
+};
+
+export type UpdateUserData = {
+  full_name: string;
+};

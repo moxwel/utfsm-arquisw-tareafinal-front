@@ -1,57 +1,43 @@
 "use client";
-import React from 'react';
-import Link from 'next/link';
 
-export default function LoginPage() {
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+export default function WelcomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Opcional: Si el usuario ya tiene un token, redirigirlo directamente al chat.
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      router.push('/chat');
+    }
+  }, [router]);
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-white dark:bg-black">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-900 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-white">Login</h1>
-        <form className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="w-full px-3 py-2 mt-1 text-gray-900 bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Contraseña
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="w-full px-3 py-2 mt-1 text-gray-900 bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-            />
-          </div>
-          <div>
-            <button
-              type="submit"
-              className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Login
-            </button>
-          </div>
-        </form>
-        <p className="text-sm text-center text-gray-600 dark:text-gray-400">
-          ¿No tienes cuenta?{' '}
-          <Link href="/register" className="font-medium text-blue-600 hover:underline dark:text-blue-500">
-            Regístrate
-          </Link>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="w-full max-w-md p-8 space-y-8 text-center bg-white rounded-lg shadow-md dark:bg-gray-800">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+          Bienvenido a la App de Chat
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300">
+          Conéctate con tus canales y equipos.
         </p>
+        <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 justify-center">
+          <Link 
+            href="/login" 
+            className="w-full sm:w-auto px-6 py-3 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Iniciar Sesión
+          </Link>
+          <Link 
+            href="/register" 
+            className="w-full sm:w-auto px-6 py-3 font-medium text-indigo-700 bg-indigo-100 rounded-md hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:text-indigo-300 dark:bg-indigo-900 dark:hover:bg-indigo-800"
+          >
+            Registrarse
+          </Link>
+        </div>
       </div>
     </div>
   );

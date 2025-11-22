@@ -1,62 +1,177 @@
 // app/lib/api.ts
 import { channels, bots, currentUser } from '../data';
-import type { Channel, Bot, User } from './types';
+import type { Channel, Bot, User, RegisterUserData, LoginUserData, LoginResponse, UpdateUserData } from './types';
+
 
 // Simula un retardo de red
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * API MOCK - Canales
- * Esta función simula la obtención de todos los canales.
- * EL EQUIPO DE BACKEND deberá reemplazar esto con una llamada fetch a la API real.
- * Ejemplo:
- * 
- * export const getChannels = async (): Promise<Channel[]> => {
- *   const response = await fetch('https://your-api.com/channels');
- *   if (!response.ok) {
- *     throw new Error('Failed to fetch channels');
- *   }
- *   return response.json();
- * };
+ * Registrar Usuario
  */
-export const getChannels = async (): Promise<Channel[]> => {
-  console.log("API MOCK: Obteniendo canales...");
-  await sleep(500); // Simular carga
-  return Promise.resolve(channels);
+export const registerUser = async (userData: RegisterUserData): Promise<User> => {
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+
+  // console log que indica a qué URL se está conectando
+  console.log("Conectando a:", API_GATEWAY_URL); 
+
+  if (!API_GATEWAY_URL) {
+    throw new Error("La variable de entorno NEXT_PUBLIC_API_GATEWAY_URL no está definida.");
+  }
+
+  try {
+    const response = await fetch(`${API_GATEWAY_URL}/v1/usuarios/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      
+      const errorText = await response.text();
+      console.error("Respuesta de error no-JSON del servidor:", errorText);
+      try {
+        
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`);
+      } catch (e) {
+        
+        throw new Error(`El servidor respondió con un error ${response.status} no esperado. Revisa la consola del navegador para ver la respuesta completa.`);
+      }
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error en registerUser:", error);
+    throw error;
+  }
 };
 
 /**
- * API MOCK - Bots
- * Esta función simula la obtención de todos los bots.
- * EL EQUIPO DE BACKEND deberá reemplazar esto con una llamada fetch a la API real.
+ * Iniciar Sesion
  */
-export const getBots = async (): Promise<Bot[]> => {
-  console.log("API MOCK: Obteniendo bots...");
-  await sleep(500);
-  return Promise.resolve(bots);
+export const loginUser = async (loginData: LoginUserData): Promise<LoginResponse> => {
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+
+  if (!API_GATEWAY_URL) {
+    throw new Error("La variable de entorno NEXT_PUBLIC_API_GATEWAY_URL no está definida.");
+  }
+
+  try {
+    const response = await fetch(`${API_GATEWAY_URL}/v1/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(loginData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      // manejo de errores
+      const errorMessage = Array.isArray(errorData.detail)
+        ? errorData.detail.map((d: any) => d.msg).join(', ')
+        : errorData.detail || `Error ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error en loginUser:", error);
+    throw error;
+  }
 };
 
 /**
- * API MOCK - Usuario Actual
- * Esta función simula la obtención del usuario que ha iniciado sesión.
- * EL EQUIPO DE BACKEND deberá reemplazar esto con la lógica de autenticación real.
+ * Obtener Usuario Actual
  */
-export const getCurrentUser = async (): Promise<User> => {
-    console.log("API MOCK: Obteniendo usuario actual...");
-    await sleep(100);
-    return Promise.resolve(currentUser);
+export const getCurrentUser = async (): Promise<User | null> => {
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const token = localStorage.getItem('access_token');
+
+  if (!API_GATEWAY_URL) {
+    throw new Error("La variable de entorno NEXT_PUBLIC_API_GATEWAY_URL no está definida.");
+  }
+
+  if (!token) {
+    console.log("No se encontró token de acceso. El usuario no está autenticado.");
+    return null; // Sin token
+  }
+
+  try {
+    const response = await fetch(`${API_GATEWAY_URL}/v1/users/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      // Si el token es inválido o expiró, el servidor podría devolver 401 o 403
+      if (response.status === 401 || response.status === 403) {
+        console.error("Token inválido o expirado. Se requiere iniciar sesión de nuevo.");
+        // Se borra el token para evitar bucles de error
+        localStorage.removeItem('access_token');
+        return null;
+      }
+      const errorData = await response.json();
+      const errorMessage = Array.isArray(errorData.detail)
+        ? errorData.detail.map((d: any) => d.msg).join(', ')
+        : errorData.detail || `Error ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error en getCurrentUser:", error);
+    throw error;
+  }
 };
 
 /**
- * API MOCK - Enviar Mensaje
- * Esta función simula el envío de un mensaje.
- * EL EQUIPO DE BACKEND deberá reemplazar esto con una llamada fetch a la API real.
- * Debería devolver el mensaje guardado o una confirmación.
+ * Actualizar Usuario Actual
  */
-export const sendMessage = async (conversationId: string, text: string): Promise<any> => {
-    console.log(`API MOCK: Enviando mensaje "${text}" a la conversación ${conversationId}`);
-    await sleep(300);
-    // En una API real, aquí harías un POST y la API se encargaría de la persistencia.
-    // El frontend NO debería mutar los datos directamente.
-    return Promise.resolve({ success: true });
-}
+export const updateUser = async (userData: UpdateUserData): Promise<User> => {
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const token = localStorage.getItem('access_token');
+
+  if (!API_GATEWAY_URL) {
+    throw new Error("La variable de entorno NEXT_PUBLIC_API_GATEWAY_URL no está definida.");
+  }
+
+  if (!token) {
+    throw new Error("No se encontró token de acceso. Se requiere iniciar sesión.");
+  }
+
+  try {
+    const response = await fetch(`${API_GATEWAY_URL}/v1/users/me`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('access_token');
+        throw new Error("Token inválido o expirado. Por favor, inicie sesión de nuevo.");
+      }
+      const errorData = await response.json();
+      const errorMessage = Array.isArray(errorData.detail)
+        ? errorData.detail.map((d: any) => d.msg).join(', ')
+        : errorData.detail || `Error ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error en updateUser:", error);
+    throw error;
+  }
+};
+
