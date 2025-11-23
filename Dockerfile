@@ -1,6 +1,9 @@
 # Etapa 1: Construcción
 FROM node:24.11-alpine3.22 AS builder
 
+ARG NEXT_PUBLIC_API_GATEWAY_URL
+ENV NEXT_PUBLIC_API_GATEWAY_URL=$NEXT_PUBLIC_API_GATEWAY_URL
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
