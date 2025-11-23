@@ -9,7 +9,7 @@ interface CreateThreadModalProps {
   onClose: () => void;
   currentUser: User | null;
   channelId: string | null;
-  onThreadCreated: (newThread: Thread) => void;
+  onThreadCreated: () => void; // <-- MODIFICADO
 }
 
 const CreateThreadModal: React.FC<CreateThreadModalProps> = ({ isOpen, onClose, currentUser, channelId, onThreadCreated }) => {
@@ -35,8 +35,8 @@ const CreateThreadModal: React.FC<CreateThreadModalProps> = ({ isOpen, onClose, 
     };
 
     try {
-      const newThread = await createThread(threadData);
-      onThreadCreated(newThread);
+      await createThread(threadData);
+      onThreadCreated(); // <-- MODIFICADO
       setThreadTitle('');
       onClose();
     } catch (err: any) {

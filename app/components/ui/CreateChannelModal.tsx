@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { createChannel } from '../../lib/api';
-import type { CreateChannelData, Channel, User } from '../../lib/types';
+import type { CreateChannelData, User } from '../../lib/types';
 
 interface CreateChannelModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: User | null;
-  onChannelCreated: (newChannel: Channel) => void;
+  onChannelCreated: () => void; // <-- MODIFICADO: ya no recibe argumentos
 }
 
 const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, onClose, currentUser, onChannelCreated }) => {
@@ -34,19 +34,9 @@ const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, onClose
     };
 
     try {
-      // La API devuelve ChannelDetail, pero para la lista solo necesitamos Channel
-      const newChannelDetail = await createChannel(channelData);
-      const newChannel: Channel = {
-        id: newChannelDetail.id,
-        name: newChannelDetail.name,
-        owner_id: newChannelDetail.owner_id,
-        channel_type: newChannelDetail.channel_type,
-        created_at: newChannelDetail.created_at,
-        user_count: newChannelDetail.users.length, // Calculamos el user_count
-      };
-      onChannelCreated(newChannel);
+      await createChannel(channelData);
+      onChannelCreated(); // <-- MODIFICADO: se llama sin argumentos
       setChannelName('');
-      setChannelType('public');
       onClose();
     } catch (err: any) {
       setError(err.message || 'Ocurrió un error al crear el canal.');

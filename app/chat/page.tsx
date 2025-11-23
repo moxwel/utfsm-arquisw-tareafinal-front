@@ -169,8 +169,31 @@ export default function ChatPage() {
     }
   };
 
-  const handleChannelCreated = (newChannel: Channel) => setChannels(prev => [newChannel, ...prev]);
-  const handleThreadCreated = (newThread: Thread) => setThreads(prev => [newThread, ...prev]);
+  // --- FUNCIÓN MODIFICADA ---
+  const handleChannelCreated = async () => {
+    if (!currentUser) return;
+    try {
+      // Vuelve a solicitar la lista completa de canales del usuario
+      const updatedChannels = await getChannelsForUser(currentUser.id);
+      // Actualiza el estado con la lista fresca del servidor
+      setChannels(updatedChannels);
+    } catch (error) {
+      console.error("Error al recargar los canales después de la creación:", error);
+      // Opcional: mostrar un mensaje de error al usuario
+    }
+  };
+
+  // --- APLICAMOS LA MISMA LÓGICA A LOS HILOS ---
+  const handleThreadCreated = async () => {
+    if (!selectedChannelId) return;
+    try {
+      // Vuelve a solicitar la lista completa de hilos para el canal actual
+      const updatedThreads = await getThreadsForChannel(selectedChannelId);
+      setThreads(updatedThreads);
+    } catch (error) {
+      console.error("Error al recargar los hilos después de la creación:", error);
+    }
+  };
 
   const getListProps = () => {
     if (activeView === 'bots') {
