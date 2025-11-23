@@ -10,17 +10,17 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Registrar Usuario
  */
 export const registerUser = async (userData: RegisterUserData): Promise<User> => {
-  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL?.replace(/\/$/, "");
 
   // console log que indica a qué URL se está conectando
-  console.log("Conectando a:", API_GATEWAY_URL); 
+  console.log("Conectando a:", API_GATEWAY_URL);
 
   if (!API_GATEWAY_URL) {
     throw new Error("La variable de entorno NEXT_PUBLIC_API_GATEWAY_URL no está definida.");
   }
 
   try {
-    const response = await fetch(`${API_GATEWAY_URL}/v1/usuarios/register`, {
+    const response = await fetch(`${API_GATEWAY_URL}/api/v1/usuarios/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -29,15 +29,15 @@ export const registerUser = async (userData: RegisterUserData): Promise<User> =>
     });
 
     if (!response.ok) {
-      
+
       const errorText = await response.text();
       console.error("Respuesta de error no-JSON del servidor:", errorText);
       try {
-        
+
         const errorData = JSON.parse(errorText);
         throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`);
       } catch (e) {
-        
+
         throw new Error(`El servidor respondió con un error ${response.status} no esperado. Revisa la consola del navegador para ver la respuesta completa.`);
       }
     }
@@ -60,7 +60,7 @@ export const loginUser = async (loginData: LoginUserData): Promise<LoginResponse
   }
 
   try {
-    const response = await fetch(`${API_GATEWAY_URL}/v1/auth/login`, {
+    const response = await fetch(`${API_GATEWAY_URL}/api/v1/usuarios/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
   }
 
   try {
-    const response = await fetch(`${API_GATEWAY_URL}/v1/users/me`, {
+    const response = await fetch(`${API_GATEWAY_URL}/api/v1/usuarios/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -147,7 +147,7 @@ export const updateUser = async (userData: UpdateUserData): Promise<User> => {
   }
 
   try {
-    const response = await fetch(`${API_GATEWAY_URL}/v1/users/me`, {
+    const response = await fetch(`${API_GATEWAY_URL}/api/v1/usuarios/me`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -174,4 +174,3 @@ export const updateUser = async (userData: UpdateUserData): Promise<User> => {
     throw error;
   }
 };
-
