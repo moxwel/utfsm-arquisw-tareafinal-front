@@ -1,5 +1,4 @@
 // app/lib/api.ts
-import { channels, bots, currentUser } from '../data';
 import type { User, Message, Channel, ChannelDetail, RegisterUserData, LoginUserData, LoginResponse, UpdateUserData, Thread, CreateChannelData, CreateThreadData, ProgrammingBotMessage, ProgrammingBotReply, WikipediaBotMessage, WikipediaBotReply } from './types';
 
 
@@ -31,20 +30,20 @@ export const registerUser = async (userData: RegisterUserData): Promise<User> =>
     });
 
     if (!response.ok) {
-      
+
       const errorData = await response.json();
-      
+
       let errorMessage = `Error ${response.status}`;
 
-      
+
       if (errorData.detail && Array.isArray(errorData.detail)) {
         errorMessage = errorData.detail.map((d: any) => d.msg || 'Error de validación').join(', ');
-      } 
-      
+      }
+
       else if (typeof errorData.detail === 'string') {
         errorMessage = errorData.detail;
       }
-      
+
       throw new Error(errorMessage);
     }
 
@@ -372,7 +371,7 @@ export const getThreadsForChannel = async (channelId: string): Promise<Thread[]>
   }
 
   try {
-    
+
     const response = await fetch(`${API_GATEWAY_URL}/api/v1/hilos/?channel_id=${channelId}`, {
       method: 'GET',
       headers: {
