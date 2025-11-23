@@ -1,7 +1,6 @@
-// app/components/ui/DynamicList.tsx
 "use client";
 import React from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 
 interface ListItem {
   id: string | number;
@@ -13,34 +12,50 @@ interface DynamicListProps {
   items: ListItem[];
   onItemClick: (id: string | number) => void;
   onBack?: () => void;
+  onAdd?: () => void;
   selectedId?: string | number | null;
-  titleClassName?: string; // Prop añadida
+  isLoading?: boolean;
 }
 
-const DynamicList: React.FC<DynamicListProps> = ({ title, items, onItemClick, onBack, selectedId, titleClassName }) => {
+const DynamicList: React.FC<DynamicListProps> = ({ title, items, onItemClick, onBack, onAdd, selectedId, isLoading }) => {
   return (
-    <div className="h-full w-full border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0">
-      {/* Se aplica la clase aquí */}
-      <div className={`p-4 border-b border-gray-200 dark:border-gray-700 flex items-center ${titleClassName || ''}`}>
-        {onBack && (
-          <button onClick={onBack} className="mr-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-            <ChevronLeft size={20} />
+    <div className="flex flex-col h-full bg-gray-100 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 h-16">
+        {onBack ? (
+          <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+            <ArrowLeft className="w-5 h-5" />
           </button>
+        ) : (
+          <div className="w-9 h-9"></div> 
         )}
-        <h2 className="text-xl font-semibold">{title}</h2>
+        <h2 className="font-bold text-lg text-center">{title}</h2>
+        
+        {onAdd ? (
+          <button onClick={onAdd} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+            <Plus className="w-5 h-5" />
+          </button>
+        ) : (
+          <div className="w-9 h-9"></div>
+        )}
       </div>
-      <div className="overflow-y-auto flex-1 min-h-0 custom-scrollbar">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => onItemClick(item.id)}
-            className={`p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-800 ${
-              item.id === selectedId ? 'bg-gray-100 dark:bg-gray-800' : ''
-            }`}
-          >
-            <p className="font-medium truncate">{item.name}</p>
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {isLoading ? (
+          <div className="p-4 text-center text-gray-500">Cargando...</div>
+        ) : (
+          items.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onItemClick(item.id)}
+              className={`px-4 py-2 cursor-pointer text-sm ${
+                selectedId === item.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              {item.name}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
