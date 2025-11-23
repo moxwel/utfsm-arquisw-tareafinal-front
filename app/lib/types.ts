@@ -1,5 +1,3 @@
-// app/lib/types.ts
-
 export type User = {
   id: string;
   email: string;
@@ -14,19 +12,47 @@ export type Message = {
   isSender: boolean;
   author: string;
   timestamp: string;
+  isBot?: boolean; 
 };
 
-export interface Thread {
+export type Thread = {
   id: string;
-  name: string;
-  messages: Message[];
-}
+  channel_id: string;
+  title: string;
+  created_by: string;
+  status: "open" | "closed";
+  meta: object;
+  created_at: string;
+  updated_at: string;
+};
 
-export interface Channel {
+export type Channel = {
   id: string;
   name: string;
-  threads: { id: string; name: string }[];
-}
+  owner_id: string;
+  channel_type: "public" | "private"; // union para seguridad
+  created_at: number;
+  user_count: number;
+};
+
+export type ChannelUser = {
+  id: string;
+  joined_at: number;
+};
+
+export type ChannelDetail = {
+  id: string;
+  name: string;
+  owner_id: string;
+  users: ChannelUser[];
+  is_active: boolean;
+  channel_type: "public" | "private";
+  created_at: number;
+  updated_at: number;
+  deleted_at: number;
+  
+  threads?: Thread[]; 
+};
 
 export type Bot = {
   id: string;
@@ -53,4 +79,40 @@ export type LoginResponse = {
 
 export type UpdateUserData = {
   full_name: string;
+};
+
+export type CreateChannelData = {
+  name: string;
+  owner_id: string;
+  channel_type: "public" | "private";
+};
+
+export type CreateThreadData = {
+  channel_id: string;
+  title: string;
+  created_by: string;
+  meta?: object;
+};
+
+export type ProgrammingBotQuestion = {
+  message: string;
+  question: string;
+  question_id: string;
+};
+
+export type ProgrammingBotMessage = {
+  message: string;
+};
+
+export type ProgrammingBotReply = {
+  reply: string;
+};
+
+
+export type WikipediaBotMessage = {
+  message: string;
+};
+
+export type WikipediaBotReply = {
+  message: string;
 };

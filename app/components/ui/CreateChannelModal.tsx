@@ -1,0 +1,112 @@
+"use client";
+
+import { useState } from 'react';
+import { createChannel } from '../../lib/api';
+import type { CreateChannelData, Channel, User } from '../../lib/types';
+
+interface CreateChannelModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentUser: User | null;
+  onChannelCreated: (newChannel: Channel) => void;
+}
+
+const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, onClose, currentUser, onChannelCreated }) => {
+  const [channelName, setChannelName] = useState('');
+  const [channelType, setChannelType] = useState<'public' | 'private'>('public');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!channelName.trim() || !currentUser) {
+      setError('El nombre del canal no puede estar vacío.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const channelData: CreateChannelData = {
+      name: channelName,
+      owner_id: currentUser.id,
+      channel_type: channelType,
+    };
+
+    try {
+      // La API devuelve ChannelDetail, pero para la lista solo necesitamos Channel
+      const newChannelDetail = await createChannel(channelData);
+      const newChannel: Channel = {
+        id: newChannelDetail.id,
+        name: newChannelDetail.name,
+        owner_id: newChannelDetail.owner_id,
+        channel_type: newChannelDetail.channel_type,
+        created_at: newChannelDetail.created_at,
+        user_count: newChannelDetail.users.length, // Calculamos el user_count
+      };
+      onChannelCreated(newChannel);
+      setChannelName('');
+      setChannelType('public');
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Ocurrió un error al crear el canal.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Crear Nuevo Canal</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl">&times;</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="channelName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nombre del Canal
+            </label>
+            <input
+              id="channelName"
+              type="text"
+              value={channelName}
+              onChange={(e) => setChannelName(e.target.value)}
+              placeholder="Ej: #general"
+              className="w-full px-3 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Tipo de Canal
+            </label>
+            <select
+              value={channelType}
+              onChange={(e) => setChannelType(e.target.value as 'public' | 'private')}
+              className="w-full px-3 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="public">Público</option>
+              <option value="private">Privado</option>
+            </select>
+          </div>
+          {error && <p className="text-sm text-red-500 dark:text-red-400 mb-4">{error}</p>}
+          <div className="flex justify-end gap-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+              Cancelar
+            </button>
+            <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50">
+              {isLoading ? 'Creando...' : 'Crear Canal'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default CreateChannelModal;
