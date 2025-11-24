@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { createThread } from '../../lib/api';
-import type { CreateThreadData, Thread, User } from '../../lib/types';
+import type { CreateThreadData, User } from '../../lib/types';
 
 interface CreateThreadModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: User | null;
   channelId: string | null;
-  onThreadCreated: () => void; // <-- MODIFICADO
+  onThreadCreated: () => void;
+  onLeaveChannel: () => void; // <-- La prop que faltaba
 }
 
-const CreateThreadModal: React.FC<CreateThreadModalProps> = ({ isOpen, onClose, currentUser, channelId, onThreadCreated }) => {
+const CreateThreadModal: React.FC<CreateThreadModalProps> = ({ isOpen, onClose, currentUser, channelId, onThreadCreated, onLeaveChannel }) => {
   const [threadTitle, setThreadTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ const CreateThreadModal: React.FC<CreateThreadModalProps> = ({ isOpen, onClose, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!threadTitle.trim() || !currentUser || !channelId) {
-      setError('El título del hilo no puede estar vacío.');
+      setError('El título no puede estar vacío.');
       return;
     }
 
@@ -29,14 +30,14 @@ const CreateThreadModal: React.FC<CreateThreadModalProps> = ({ isOpen, onClose, 
 
     const threadData: CreateThreadData = {
       title: threadTitle,
-      created_by: currentUser.id,
+      created_by: currentUser.id, // Cambiado de owner_id
       channel_id: channelId,
-      meta: {}, 
+      meta: {}, // Añadido meta
     };
 
     try {
       await createThread(threadData);
-      onThreadCreated(); // <-- MODIFICADO
+      onThreadCreated();
       setThreadTitle('');
       onClose();
     } catch (err: any) {
@@ -67,19 +68,28 @@ const CreateThreadModal: React.FC<CreateThreadModalProps> = ({ isOpen, onClose, 
               type="text"
               value={threadTitle}
               onChange={(e) => setThreadTitle(e.target.value)}
-              placeholder="Ej: Discusión sobre el despliegue"
+              placeholder="Ej: Dudas sobre el endpoint de usuarios"
               className="w-full px-3 py-2 text-gray-900 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
               required
             />
           </div>
           {error && <p className="text-sm text-red-500 dark:text-red-400 mb-4">{error}</p>}
-          <div className="flex justify-end gap-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
-              Cancelar
+          <div className="flex justify-between items-center gap-4">
+            <button
+              type="button"
+              onClick={onLeaveChannel}
+              className="text-sm text-red-600 dark:text-red-500 hover:underline"
+            >
+              Salir del Canal
             </button>
-            <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50">
-              {isLoading ? 'Creando...' : 'Crear Hilo'}
-            </button>
+            <div className="flex gap-4">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                Cancelar
+              </button>
+              <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                {isLoading ? 'Creando...' : 'Crear Hilo'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

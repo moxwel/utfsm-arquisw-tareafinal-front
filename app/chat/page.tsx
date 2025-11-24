@@ -4,15 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   getCurrentUser, getChannelsForUser, getThreadsForChannel, createChannel, createThread,
-  sendToProgrammingBot,
-  sendToWikipediaBot
+  sendToProgrammingBot, sendToWikipediaBot, leaveChannel, getChannelMembers
 } from '../lib/api';
-import type { User, Message, Channel, Thread } from '../lib/types';
+import ChannelMembersModal from '../components/ui/ChannelMembersModal';
+import JoinChannelModal from '../components/ui/JoinChannelModal';
 import Sidebar from '../components/ui/Sidebar';
 import DynamicList from '../components/ui/DynamicList';
 import ChatWindow from '../components/ui/ChatWindow';
 import CreateChannelModal from '../components/ui/CreateChannelModal';
 import CreateThreadModal from '../components/ui/CreateThreadModal';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
+import type { User, Message, Channel, Thread, ChannelMember } from '../lib/types';
 
 const PROGRAMMING_BOT_ID = '2';
 const WIKIPEDIA_BOT_ID = '3';
@@ -38,7 +40,13 @@ export default function ChatPage() {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
+  const [isJoinChannelModalOpen, setIsJoinChannelModalOpen] = useState(false);
   const [isCreateThreadModalOpen, setIsCreateThreadModalOpen] = useState(false);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isLeaveLoading, setIsLeaveLoading] = useState(false);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isMembersLoading, setIsMembersLoading] = useState(false);
+  const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -183,7 +191,18 @@ export default function ChatPage() {
     }
   };
 
-  // --- APLICAMOS LA MISMA LÓGICA A LOS HILOS ---
+  
+  const handleChannelJoined = async () => {
+    if (!currentUser) return;
+    try {
+      const updatedChannels = await getChannelsForUser(currentUser.id);
+      setChannels(updatedChannels);
+    } catch (error) {
+      console.error("Error al recargar los canales después de unirse:", error);
+    }
+  };
+
+  
   const handleThreadCreated = async () => {
     if (!selectedChannelId) return;
     try {
@@ -192,6 +211,46 @@ export default function ChatPage() {
       setThreads(updatedThreads);
     } catch (error) {
       console.error("Error al recargar los hilos después de la creación:", error);
+    }
+  };
+
+  const handleLeaveChannelConfirm = async () => {
+    if (!selectedChannelId || !currentUser) return;
+
+    setIsLeaveLoading(true);
+    try {
+      await leaveChannel({ channel_id: selectedChannelId, user_id: currentUser.id });
+      // Refrescar la lista de canales
+      const updatedChannels = await getChannelsForUser(currentUser.id);
+      setChannels(updatedChannels);
+      // Limpiar selección
+      setSelectedChannelId(null);
+      setSelectedThreadId(null);
+    } catch (error) {
+      console.error("Error al salir del canal:", error);
+      // Aquí podrías mostrar un toast o alerta de error
+    } finally {
+      setIsLeaveLoading(false);
+      setIsLeaveModalOpen(false);
+    }
+  };
+
+  // --- FUNCIÓN CORREGIDA Y SIMPLIFICADA ---
+  const handleShowMembers = async () => {
+    if (!selectedChannelId) return;
+
+    setIsMembersModalOpen(true);
+    setIsMembersLoading(true);
+    setChannelMembers([]);
+
+    try {
+      // Solo se necesita una llamada a la API
+      const members = await getChannelMembers(selectedChannelId);
+      setChannelMembers(members);
+    } catch (error) {
+      console.error("Error al cargar los miembros del canal:", error);
+    } finally {
+      setIsMembersLoading(false);
     }
   };
 
@@ -215,12 +274,14 @@ export default function ChatPage() {
     if (selectedChannelId) {
       return {
         title: channels.find(c => c.id === selectedChannelId)?.name || 'Hilos',
-        items: threads.map(t => ({ ...t, name: t.title })),
+        // --- LÍNEA CORREGIDA ---
+        items: threads.map(t => ({ id: t.thread_id, name: t.title })),
         onItemClick: (id: string | number) => setSelectedThreadId(id as string),
         selectedId: selectedThreadId,
         onBack: () => setSelectedChannelId(null),
         isLoading: isListLoading,
         onAdd: () => setIsCreateThreadModalOpen(true),
+        onShowMembers: handleShowMembers, // <-- Pasar la nueva función
       };
     }
     return {
@@ -237,7 +298,7 @@ export default function ChatPage() {
   const chatMessages = activeChatId ? messages[activeChatId] || [] : [];
 
   const getChatName = () => {
-    if (selectedThreadId) return `# ${threads.find(t => t.id === selectedThreadId)?.title || 'Hilo'}`;
+    if (selectedThreadId) return `# ${threads.find(t => t.thread_id === selectedThreadId)?.title || 'Hilo'}`;
     if (selectedBotId) return availableBots.find(b => b.id === selectedBotId)?.name || 'Bot';
     return 'Selecciona una conversación';
   };
@@ -260,8 +321,48 @@ export default function ChatPage() {
       ) : (
         <div className="flex-1 min-w-0 flex items-center justify-center text-gray-500">Selecciona una conversación</div>
       )}
-      <CreateChannelModal isOpen={isCreateChannelModalOpen} onClose={() => setIsCreateChannelModalOpen(false)} currentUser={currentUser} onChannelCreated={handleChannelCreated} />
-      <CreateThreadModal isOpen={isCreateThreadModalOpen} onClose={() => setIsCreateThreadModalOpen(false)} currentUser={currentUser} channelId={selectedChannelId} onThreadCreated={handleThreadCreated} />
+      <CreateChannelModal 
+        isOpen={isCreateChannelModalOpen} 
+        onClose={() => setIsCreateChannelModalOpen(false)} 
+        currentUser={currentUser} 
+        onChannelCreated={handleChannelCreated}
+        onSwitchToJoin={() => { // <-- NUEVA PROP
+          setIsCreateChannelModalOpen(false);
+          setIsJoinChannelModalOpen(true);
+        }}
+      />
+      <JoinChannelModal // <-- NUEVO COMPONENTE
+        isOpen={isJoinChannelModalOpen}
+        onClose={() => setIsJoinChannelModalOpen(false)}
+        currentUser={currentUser}
+        onChannelJoined={handleChannelJoined}
+      />
+      <ConfirmationModal // <-- AÑADIR EL NUEVO MODAL
+        isOpen={isLeaveModalOpen}
+        onClose={() => setIsLeaveModalOpen(false)}
+        onConfirm={handleLeaveChannelConfirm}
+        title="Salir del Canal"
+        message="¿Estás seguro de que quieres salir de este canal? Esta acción no se puede deshacer."
+        confirmButtonText="Sí, Salir"
+        isLoading={isLeaveLoading}
+      />
+      <ChannelMembersModal // <-- AÑADIR EL NUEVO MODAL
+        isOpen={isMembersModalOpen}
+        onClose={() => setIsMembersModalOpen(false)}
+        members={channelMembers}
+        isLoading={isMembersLoading}
+      />
+      <CreateThreadModal 
+        isOpen={isCreateThreadModalOpen} 
+        onClose={() => setIsCreateThreadModalOpen(false)} 
+        currentUser={currentUser} 
+        channelId={selectedChannelId} 
+        onThreadCreated={handleThreadCreated}
+        onLeaveChannel={() => {
+          setIsCreateThreadModalOpen(false);
+          setIsLeaveModalOpen(true);
+        }}
+      />
     </div>
   );
 }
