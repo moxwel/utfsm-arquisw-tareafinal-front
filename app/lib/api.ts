@@ -1,5 +1,24 @@
 // app/lib/api.ts
-import type { User, Message, Channel, ChannelDetail, RegisterUserData, LoginUserData, LoginResponse, UpdateUserData, Thread, CreateChannelData, CreateThreadData, ProgrammingBotMessage, ProgrammingBotReply, WikipediaBotMessage, WikipediaBotReply } from './types';
+import type {
+  User,
+  Message,
+  Channel,
+  JoinChannelData,
+  LeaveChannelData,
+  ChannelDetail,
+  ChannelMember,
+  RegisterUserData,
+  LoginUserData,
+  LoginResponse,
+  UpdateUserData,
+  Thread,
+  CreateChannelData,
+  CreateThreadData,
+  ProgrammingBotMessage,
+  ProgrammingBotReply,
+  WikipediaBotMessage,
+  WikipediaBotReply,
+} from "./types";
 
 
 // Simula un retardo de red
