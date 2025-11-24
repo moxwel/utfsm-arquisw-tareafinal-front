@@ -16,11 +16,10 @@ export type Message = {
 };
 
 export type Thread = {
-  id: string;
+  thread_id: string; 
   channel_id: string;
   title: string;
   created_by: string;
-  status: "open" | "closed";
   meta: object;
   created_at: string;
   updated_at: string;
@@ -37,6 +36,11 @@ export type Channel = {
 
 export type ChannelUser = {
   id: string;
+  joined_at: number;
+};
+
+export type ChannelMember = {
+  id: string; // ID del usuario
   joined_at: number;
 };
 
@@ -84,13 +88,23 @@ export type UpdateUserData = {
 export type CreateChannelData = {
   name: string;
   owner_id: string;
-  channel_type: "public" | "private";
+  channel_type: 'public' | 'private';
+};
+
+export type JoinChannelData = {
+  channel_id: string;
+  user_id: string;
+};
+
+export type LeaveChannelData = {
+  channel_id: string;
+  user_id: string;
 };
 
 export type CreateThreadData = {
   channel_id: string;
   title: string;
-  created_by: string;
+  created_by: string; // Cambiado de owner_id
   meta?: object;
 };
 

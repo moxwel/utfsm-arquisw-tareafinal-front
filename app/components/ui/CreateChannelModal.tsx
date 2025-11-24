@@ -8,10 +8,11 @@ interface CreateChannelModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: User | null;
-  onChannelCreated: () => void; // <-- MODIFICADO: ya no recibe argumentos
+  onChannelCreated: () => void;
+  onSwitchToJoin: () => void; // <-- NUEVA PROP
 }
 
-const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, onClose, currentUser, onChannelCreated }) => {
+const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, onClose, currentUser, onChannelCreated, onSwitchToJoin }) => {
   const [channelName, setChannelName] = useState('');
   const [channelType, setChannelType] = useState<'public' | 'private'>('public');
   const [isLoading, setIsLoading] = useState(false);
@@ -85,13 +86,18 @@ const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, onClose
             </select>
           </div>
           {error && <p className="text-sm text-red-500 dark:text-red-400 mb-4">{error}</p>}
-          <div className="flex justify-end gap-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
-              Cancelar
+          <div className="flex justify-between items-center gap-4">
+            <button type="button" onClick={onSwitchToJoin} className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+              Unirse por ID
             </button>
-            <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50">
-              {isLoading ? 'Creando...' : 'Crear Canal'}
-            </button>
+            <div className="flex gap-4">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                Cancelar
+              </button>
+              <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                {isLoading ? 'Creando...' : 'Crear Canal'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

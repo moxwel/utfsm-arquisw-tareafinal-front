@@ -181,7 +181,6 @@ export const updateUser = async (userData: UpdateUserData): Promise<User> => {
 };
 
 
-
 //CANALES
 /**
  * Obtener Canales de un Usuario
@@ -272,6 +271,31 @@ export const getChannelById = async (channelId: string): Promise<ChannelDetail> 
 };
 
 /**
+ * Obtener los miembros de un canal.
+ */
+export const getChannelMembers = async (channelId: string): Promise<ChannelMember[]> => {
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const token = localStorage.getItem('access_token');
+
+  if (!API_GATEWAY_URL) throw new Error("URL de API no definida.");
+  if (!token) throw new Error("Token de acceso no encontrado.");
+
+  try {
+    const response = await fetch(`${API_GATEWAY_URL}/api/v1/canales/members/channel/${channelId}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail?.[0]?.msg || `Error ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error en getChannelMembers:", error);
+    throw error;
+  }
+};
+
+/**
  * Crear un nuevo Canal
  * Realiza una petición POST para crear un nuevo canal.
  */
@@ -312,6 +336,66 @@ export const createChannel = async (channelData: CreateChannelData): Promise<Cha
   }
 };
 
+/**
+ * Unir un usuario a un canal existente.
+ */
+export const joinChannel = async (joinData: JoinChannelData): Promise<Channel> => {
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const token = localStorage.getItem('access_token');
+
+  if (!API_GATEWAY_URL) throw new Error("URL de API no definida.");
+  if (!token) throw new Error("Token de acceso no encontrado.");
+
+  try {
+    const response = await fetch(`${API_GATEWAY_URL}/api/v1/canales/members/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(joinData),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail?.[0]?.msg || `Error ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error en joinChannel:", error);
+    throw error;
+  }
+};
+
+/**
+ * Eliminar un usuario de un canal.
+ */
+export const leaveChannel = async (leaveData: LeaveChannelData): Promise<Channel> => {
+  const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  const token = localStorage.getItem('access_token');
+
+  if (!API_GATEWAY_URL) throw new Error("URL de API no definida.");
+  if (!token) throw new Error("Token de acceso no encontrado.");
+
+  try {
+    const response = await fetch(`${API_GATEWAY_URL}/api/v1/canales/members/`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(leaveData),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail?.[0]?.msg || `Error ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error en leaveChannel:", error);
+    throw error;
+  }
+};
+
 //HILOS
 /**
  * Crear un nuevo Hilo
@@ -332,7 +416,7 @@ export const createThread = async (threadData: CreateThreadData): Promise<Thread
   try {
     const response = await fetch(`${API_GATEWAY_URL}/api/v1/hilos/`, {
       method: 'POST',
-      headers: {
+      headers: { // <-- AÑADIR HEADERS
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
